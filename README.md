@@ -21,34 +21,41 @@ ftp = { version = "<version>", features = ["secure"] }
 
 ## Usage
 ```rust
-extern crate ftp;
-
 use std::str;
 use std::io::Cursor;
-use ftp::FtpStream;
+use async_ftp::FtpStream;
 
-fn main() {
+async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a connection to an FTP server and authenticate to it.
-    let mut ftp_stream = FtpStream::connect("127.0.0.1:21").unwrap();
-    let _ = ftp_stream.login("username", "password").unwrap();
+    let mut ftp_stream = FtpStream::connect("172.25.82.139:21").await?;
+    let _ = ftp_stream.login("username", "password").await?;
 
     // Get the current directory that the client will be reading from and writing to.
-    println!("Current directory: {}", ftp_stream.pwd().unwrap());
+    println!("Current directory: {}", ftp_stream.pwd().await?);
     
     // Change into a new directory, relative to the one we are currently in.
-    let _ = ftp_stream.cwd("test_data").unwrap();
+    let _ = ftp_stream.cwd("test_data").await?;
 
     // Retrieve (GET) a file from the FTP server in the current working directory.
-    let remote_file = ftp_stream.simple_retr("ftpext-charter.txt").unwrap();
-    println!("Read file with contents\n{}\n", str::from_utf8(&remote_file.into_inner()).unwrap());
+    let remote_file = ftp_stream.simple_retr("ftpext-charter.txt").await?;
+    println!("Read file with contents\n{}\n", str::from_utf8(&remote_file.into_inner()).await?);
 
     // Store (PUT) a file from the client to the current working directory of the server.
     let mut reader = Cursor::new("Hello from the Rust \"ftp\" crate!".as_bytes());
-    let _ = ftp_stream.put("greeting.txt", &mut reader);
+    let _ = ftp_stream.put("greeting.txt", &mut reader).await?;
     println!("Successfully wrote greeting.txt");
 
     // Terminate the connection to the server.
     let _ = ftp_stream.quit();
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tokio::runtime::Builder::new()
+        .threaded_scheduler()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async_main())
 }
 
 ```

@@ -1,6 +1,3 @@
-#![crate_name = "ftp"]
-#![crate_type = "lib"]
-
 //! ftp is an FTP client written in Rust.
 //!
 //! ### Usage
@@ -8,11 +5,13 @@
 //! Here is a basic usage example:
 //!
 //! ```rust
-//! use ftp::FtpStream;
-//! let mut ftp_stream = FtpStream::connect("127.0.0.1:21").unwrap_or_else(|err|
-//!     panic!("{}", err)
-//! );
-//! let _ = ftp_stream.quit();
+//! use async_ftp::FtpStream;
+//! async {
+//!   let mut ftp_stream = FtpStream::connect("172.25.82.139:21").await.unwrap_or_else(|err|
+//!       panic!("{}", err)
+//!   );
+//!   let _ = ftp_stream.quit();
+//! };
 //! ```
 //!
 //! ### FTPS
@@ -29,26 +28,37 @@
 //! ### FTPS Usage
 //!
 //! ```rust,no_run
-//! use ftp::FtpStream;
-//! use openssl::ssl::{ SslContext, SslMethod };
+//! use std::path::Path;
+//! use async_ftp::FtpStream;
+//! use tokio_rustls::rustls::{ClientConfig, RootCertStore};
+//! use tokio_rustls::webpki::{DNSName, DNSNameRef};
 //!
-//! let ftp_stream = FtpStream::connect("127.0.0.1:21").unwrap();
-//! let ctx = SslContext::builder(SslMethod::tls()).unwrap().build();
-//! // Switch to the secure mode
-//! let mut ftp_stream = ftp_stream.into_secure(ctx).unwrap();
-//! ftp_stream.login("anonymous", "anonymous").unwrap();
-//! // Do other secret stuff
-//! // Switch back to the insecure mode (if required)
-//! let mut ftp_stream = ftp_stream.into_insecure().unwrap();
-//! // Do all public stuff
-//! let _ = ftp_stream.quit();
+//! async {
+//!   let ftp_stream = FtpStream::connect("172.25.82.139:21").await.unwrap();
+//!   
+//!   let mut root_store = RootCertStore::empty();
+//!   // root_store.add_pem_file(...);
+//!   let mut conf = ClientConfig::new();
+//!   conf.root_store = root_store;
+//!   let domain = DNSNameRef::try_from_ascii_str("www.cert-domain.com").unwrap().into();
+//!
+//!   // Switch to the secure mode
+//!   let mut ftp_stream = ftp_stream.into_secure(conf, domain).await.unwrap();
+//!   ftp_stream.login("anonymous", "anonymous").await.unwrap();
+//!   // Do other secret stuff
+//!   // Switch back to the insecure mode (if required)
+//!   let mut ftp_stream = ftp_stream.into_insecure().await.unwrap();
+//!   // Do all public stuff
+//!   let _ = ftp_stream.quit().await;
+//! };
 //! ```
 //!
 
-mod ftp;
 mod data_stream;
-pub mod types;
+mod ftp;
 pub mod status;
+pub mod types;
 
+pub use self::data_stream::DataStream;
 pub use self::ftp::FtpStream;
 pub use self::types::FtpError;

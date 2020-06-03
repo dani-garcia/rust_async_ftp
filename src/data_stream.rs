@@ -1,15 +1,17 @@
-use std::io::{Read, Write, Result};
-use std::net::TcpStream;
+use std::io;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::TcpStream;
 #[cfg(feature = "secure")]
-use openssl::ssl::SslStream;
-
+use tokio_rustls::client::TlsStream;
 
 /// Data Stream used for communications
-#[derive(Debug)]
+#[pin_project::pin_project(project = DataStreamProj)]
 pub enum DataStream {
-    Tcp(TcpStream),
+    Tcp(#[pin] TcpStream),
     #[cfg(feature = "secure")]
-    Ssl(SslStream<TcpStream>),
+    Ssl(#[pin] TlsStream<TcpStream>),
 }
 
 impl DataStream {
@@ -18,7 +20,7 @@ impl DataStream {
         match self {
             DataStream::Tcp(stream) => stream,
             #[cfg(feature = "secure")]
-            DataStream::Ssl(stream) => stream.get_ref().try_clone().unwrap(),
+            DataStream::Ssl(stream) => stream.into_inner().0,
         }
     }
 
@@ -26,46 +28,61 @@ impl DataStream {
     pub fn is_ssl(&self) -> bool {
         match self {
             #[cfg(feature = "secure")]
-            &DataStream::Ssl(_) => true,
-            _ => false
+            DataStream::Ssl(_) => true,
+            _ => false,
         }
     }
 
     /// Returns a reference to the underlying TcpStream.
     pub fn get_ref(&self) -> &TcpStream {
         match self {
-            &DataStream::Tcp(ref stream) => stream,
+            DataStream::Tcp(ref stream) => stream,
             #[cfg(feature = "secure")]
-            &DataStream::Ssl(ref stream) => stream.get_ref(),
+            DataStream::Ssl(ref stream) => stream.get_ref().0,
         }
     }
 }
 
-impl Read for DataStream {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        match self {
-            &mut DataStream::Tcp(ref mut stream) => stream.read(buf),
+impl AsyncRead for DataStream {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
+        match self.project() {
+            DataStreamProj::Tcp(stream) => stream.poll_read(cx, buf),
             #[cfg(feature = "secure")]
-            &mut DataStream::Ssl(ref mut stream) => stream.read(buf),
+            DataStreamProj::Ssl(stream) => stream.poll_read(cx, buf),
         }
     }
 }
 
-
-impl Write for DataStream {
-    fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        match self {
-            &mut DataStream::Tcp(ref mut stream) => stream.write(buf),
+impl AsyncWrite for DataStream {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
+        match self.project() {
+            DataStreamProj::Tcp(stream) => stream.poll_write(cx, buf),
             #[cfg(feature = "secure")]
-            &mut DataStream::Ssl(ref mut stream) => stream.write(buf),
+            DataStreamProj::Ssl(stream) => stream.poll_write(cx, buf),
         }
     }
 
-    fn flush(&mut self) -> Result<()> {
-        match self {
-            &mut DataStream::Tcp(ref mut stream) => stream.flush(),
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        match self.project() {
+            DataStreamProj::Tcp(stream) => stream.poll_flush(cx),
             #[cfg(feature = "secure")]
-            &mut DataStream::Ssl(ref mut stream) => stream.flush(),
+            DataStreamProj::Ssl(stream) => stream.poll_flush(cx),
+        }
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        match self.project() {
+            DataStreamProj::Tcp(stream) => stream.poll_shutdown(cx),
+            #[cfg(feature = "secure")]
+            DataStreamProj::Ssl(stream) => stream.poll_shutdown(cx),
         }
     }
 }
