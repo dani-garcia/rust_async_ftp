@@ -82,16 +82,7 @@ impl fmt::Display for FtpError {
 }
 
 impl Error for FtpError {
-    fn description(&self) -> &str {
-        match *self {
-            FtpError::ConnectionError(ref ioerr) => ioerr.description(),
-            FtpError::SecureError(ref desc)      => desc.as_str(),
-            FtpError::InvalidResponse(ref desc)  => desc.as_str(),
-            FtpError::InvalidAddress(ref perr)   => perr.description(),
-        }
-    }
-
-    fn cause(&self) -> Option<&Error> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match *self {
             FtpError::ConnectionError(ref ioerr) => Some(ioerr),
             FtpError::SecureError(_)             => None,

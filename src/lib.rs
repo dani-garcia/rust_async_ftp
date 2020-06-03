@@ -30,7 +30,7 @@
 //!
 //! ```rust,no_run
 //! use ftp::FtpStream;
-//! use ftp::openssl::ssl::{ SslContext, SslMethod };
+//! use openssl::ssl::{ SslContext, SslMethod };
 //!
 //! let ftp_stream = FtpStream::connect("127.0.0.1:21").unwrap();
 //! let ctx = SslContext::builder(SslMethod::tls()).unwrap().build();
@@ -44,14 +44,6 @@
 //! let _ = ftp_stream.quit();
 //! ```
 //!
-
-
-#[macro_use] extern crate lazy_static;
-extern crate regex;
-extern crate chrono;
-
-#[cfg(feature = "secure")]
-pub extern crate openssl;
 
 mod ftp;
 mod data_stream;
