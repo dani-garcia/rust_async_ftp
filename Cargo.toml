@@ -29,3 +29,7 @@ chrono = "0.4.11"
 tokio = { version = "0.2.21", features = ["tcp", "dns", "io-util"] }
 tokio-rustls = { version = "0.13.1", optional = true }
 pin-project = "0.4.17"
+
+[dev-dependencies.tokio]
+version = "0.2.21"
+features = [ "macros", "stream", "io-util" ]

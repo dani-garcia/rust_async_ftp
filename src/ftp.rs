@@ -9,7 +9,8 @@ use chrono::{DateTime, Utc};
 use regex::Regex;
 
 use tokio::io::{
-    copy, AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter,
+    copy, AsyncBufRead, AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader,
+    BufWriter,
 };
 use tokio::net::{TcpStream, ToSocketAddrs};
 
@@ -435,12 +436,20 @@ impl FtpStream {
         open_code: u32,
         close_code: &[u32],
     ) -> Result<Vec<String>> {
-        let mut lines: Vec<String> = Vec::new();
-
-        let mut data_stream = BufReader::new(self.data_command(&cmd).await?);
+        let data_stream = BufReader::new(self.data_command(&cmd).await?);
         self.read_response_in(&[open_code, status::ALREADY_OPEN])
             .await?;
+        let lines = Self::get_lines_from_stream(data_stream).await?;
+        self.read_response_in(close_code).await?;
+        Ok(lines)
+    }
 
+    /// Consume a stream and return a vector of lines
+    async fn get_lines_from_stream<R>(mut data_stream: R) -> Result<Vec<String>>
+    where
+        R: AsyncBufRead + Unpin,
+    {
+        let mut lines: Vec<String> = Vec::new();
         let mut line = String::new();
         loop {
             match data_stream.read_to_string(&mut line).await {
@@ -453,9 +462,6 @@ impl FtpStream {
                 Err(err) => return Err(FtpError::ConnectionError(err)),
             };
         }
-        drop(data_stream);
-
-        self.read_response_in(close_code).await?;
         Ok(lines)
     }
 
@@ -595,5 +601,39 @@ impl FtpStream {
                 expected_code, line
             )))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FtpStream;
+    use tokio::{io::stream_reader, stream};
+
+    #[tokio::test]
+    async fn list_command_dos_newlines() {
+        let data_stream = stream_reader(stream::once(Ok(
+            b"Hello\r\nWorld\r\n\r\nBe\r\nHappy\r\n" as &[u8]
+        )));
+
+        assert_eq!(
+            FtpStream::get_lines_from_stream(data_stream).await.unwrap(),
+            ["Hello", "World", "Be", "Happy"]
+                .iter()
+                .map(<&str>::to_string)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[tokio::test]
+    async fn list_command_unix_newlines() {
+        let data_stream = stream_reader(stream::once(Ok(b"Hello\nWorld\n\nBe\nHappy\n" as &[u8])));
+
+        assert_eq!(
+            FtpStream::get_lines_from_stream(data_stream).await.unwrap(),
+            ["Hello", "World", "Be", "Happy"]
+                .iter()
+                .map(<&str>::to_string)
+                .collect::<Vec<_>>()
+        );
     }
 }
