@@ -36,7 +36,7 @@ fn test_ftp() {
         Ok(())
     };
 
-    let result: Result<(), FtpError> = tokio::runtime::Builder::new()
+    let result: Result<(), FtpError> = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()
