@@ -1,6 +1,6 @@
 [package]
 name = "async_ftp"
-version = "4.0.2"
+version = "4.0.3"
 authors = ["Daniel García <dani-garcia@users.noreply.github.com>", "Matt McCoy <mattnenterprise@yahoo.com>"]
 documentation = "https://docs.rs/async_ftp/"
 repository = "https://github.com/dani-garcia/rust_async_ftp"
