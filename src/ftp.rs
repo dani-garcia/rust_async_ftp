@@ -297,8 +297,8 @@ impl FtpStream {
         let retr_command = format!("RETR {}\r\n", file_name);
         let data_stream = BufReader::new(self.data_command(&retr_command).await?);
         self.read_response_in(&[
-            status::CLOSING_DATA_CONNECTION,
-            status::REQUESTED_FILE_ACTION_OK,
+            status::ABOUT_TO_SEND, 
+            status::ALREADY_OPEN
         ])
         .await?;
         Ok(data_stream)
