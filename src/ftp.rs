@@ -341,10 +341,11 @@ impl FtpStream {
     ///   assert!(conn.rm("retr.txt").await.is_ok());
     /// };
     /// ```
-    pub async fn retr<F, T, P>(&mut self, filename: &str, reader: F) -> Result<T>
+    pub async fn retr<F, T, P, E>(&mut self, filename: &str, reader: F) -> std::result::Result<T, E>
     where
         F: Fn(BufReader<DataStream>) -> P,
-        P: std::future::Future<Output = Result<T>>,
+        P: std::future::Future<Output = std::result::Result<T, E>>,
+        E: From<FtpError>,
     {
         let retr_command = format!("RETR {}\r\n", filename);
 
