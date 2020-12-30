@@ -26,7 +26,7 @@ async fn test_ftp(addr: &str, user: &str, pass: &str) -> Result<(), FtpError> {
 fn main() {
     let future = test_ftp("172.25.82.139", "anonymous", "rust-ftp@github.com");
 
-    tokio::runtime::Builder::new()
+    tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()

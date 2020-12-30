@@ -1,7 +1,7 @@
 use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
 #[cfg(feature = "secure")]
 use tokio_rustls::client::TlsStream;
@@ -47,8 +47,8 @@ impl AsyncRead for DataStream {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
         match self.project() {
             DataStreamProj::Tcp(stream) => stream.poll_read(cx, buf),
             #[cfg(feature = "secure")]

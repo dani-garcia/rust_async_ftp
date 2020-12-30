@@ -617,11 +617,12 @@ impl FtpStream {
 #[cfg(test)]
 mod tests {
     use super::FtpStream;
-    use tokio::{io::stream_reader, stream};
+    use tokio_stream::once;
+    use tokio_util::io::StreamReader;
 
     #[tokio::test]
     async fn list_command_dos_newlines() {
-        let data_stream = stream_reader(stream::once(Ok(
+        let data_stream = StreamReader::new(once(Ok::<_, std::io::Error>(
             b"Hello\r\nWorld\r\n\r\nBe\r\nHappy\r\n" as &[u8]
         )));
 
@@ -636,7 +637,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_command_unix_newlines() {
-        let data_stream = stream_reader(stream::once(Ok(b"Hello\nWorld\n\nBe\nHappy\n" as &[u8])));
+        let data_stream =  StreamReader::new(once(Ok::<_, std::io::Error>(b"Hello\nWorld\n\nBe\nHappy\n" as &[u8])));
 
         assert_eq!(
             FtpStream::get_lines_from_stream(data_stream).await.unwrap(),
