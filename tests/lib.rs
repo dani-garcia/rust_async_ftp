@@ -5,7 +5,7 @@ use std::io::Cursor;
 #[test]
 fn test_ftp() {
     let future = async {
-        let mut ftp_stream = FtpStream::connect("172.25.82.139:21").await?;
+        let mut ftp_stream = FtpStream::connect("192.168.1.60:21").await?;
         let _ = ftp_stream.login("Doe", "mumble").await?;
 
         ftp_stream.mkdir("test_dir").await?;

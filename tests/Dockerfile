@@ -1,20 +1,14 @@
-FROM i386/ubuntu:latest
+FROM ubuntu:latest
 
-RUN apt-get update -qq &&\
-    apt-get install -yqq vsftpd
+RUN apt update && apt install -y vsftpd
 
-RUN mkdir -p /var/run/vsftpd/empty &&\
-    useradd -s /bin/bash -d /home/ftp -m -c "Doe ftp user" -g ftp Doe &&\
-    echo "Doe:mumble"| chpasswd &&\
-    echo "listen=yes\n\
-anon_root=/home/ftp\n\
-local_enable=yes\n\
-local_umask=022\n\
-pasv_enable=YES\n\
-pasv_min_port=65000\n\
-pasv_max_port=65010\n\
-write_enable=yes\n\
-log_ftp_protocol=yes" > /etc/vsftpd.conf &&\
-    echo "/etc/init.d/vsftpd start" | tee -a /etc/bash.bashrc
+RUN useradd --home-dir /home/ftp --create-home --groups ftp Doe
+RUN echo "Doe:mumble" | chpasswd
+
+RUN cp /etc/vsftpd.conf /etc/vsftpd.conf.orig
+RUN echo "write_enable=yes\nlog_ftp_protocol=yes" > /etc/vsftpd.conf
+RUN cat /etc/vsftpd.conf.orig >> /etc/vsftpd.conf
+    
+RUN echo "/etc/init.d/vsftpd start" | tee -a /etc/bash.bashrc
 
 CMD ["/bin/bash"]
