@@ -292,7 +292,7 @@ impl FtpStream {
     pub async fn restart_from(&mut self, offset: u64) -> Result<()> {
         let rest_command = format!("REST {}\r\n", offset.to_string());
         self.write_str(&rest_command).await?;
-        self.read_response(status::REQUEST_FILE_PENDING).map(|_| ())
+        self.read_response(status::REQUEST_FILE_PENDING).await.map(|_| ())
     }
 
     /// Retrieves the file name specified from the server.
