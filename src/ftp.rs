@@ -291,7 +291,7 @@ impl FtpStream {
     /// Sets the byte from which the transfer is to be restarted.
     pub async fn restart_from(&mut self, offset: u64) -> Result<()> {
         let rest_command = format!("REST {}\r\n", offset.to_string());
-        self.write_str(&rest_command)?;
+        self.write_str(&rest_command).await?;
         self.read_response(status::REQUEST_FILE_PENDING).map(|_| ())
     }
 
