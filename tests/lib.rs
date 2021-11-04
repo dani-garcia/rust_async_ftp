@@ -15,23 +15,22 @@ fn test_ftp() {
         // store a file
         let file_data = "test data\n";
         let mut reader = Cursor::new(file_data.as_bytes());
-        assert!(ftp_stream.put("test_file.txt", &mut reader).await.is_ok());
+        ftp_stream.put("test_file.txt", &mut reader).await?;
 
         // retrieve file
-        assert!(ftp_stream
+        ftp_stream
             .simple_retr("test_file.txt")
             .await
-            .map(|bytes| assert_eq!(bytes.into_inner(), file_data.as_bytes()))
-            .is_ok());
+            .map(|bytes| assert_eq!(bytes.into_inner(), file_data.as_bytes()))?;
 
         // remove file
-        assert!(ftp_stream.rm("test_file.txt").await.is_ok());
+        ftp_stream.rm("test_file.txt").await?;
 
         // cleanup: go up, remove folder, and quit
-        assert!(ftp_stream.cdup().await.is_ok());
+        ftp_stream.cdup().await?;
 
-        assert!(ftp_stream.rmdir("test_dir").await.is_ok());
-        assert!(ftp_stream.quit().await.is_ok());
+        ftp_stream.rmdir("test_dir").await?;
+        ftp_stream.quit().await?;
 
         Ok(())
     };
@@ -42,5 +41,5 @@ fn test_ftp() {
         .unwrap()
         .block_on(future);
 
-    assert!(result.is_ok());
+    result.unwrap();
 }

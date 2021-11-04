@@ -1,7 +1,6 @@
 //! FTP module.
 use std::borrow::Cow;
 use std::net::SocketAddr;
-use std::str::FromStr;
 use std::string::String;
 
 use chrono::offset::TimeZone;
@@ -38,6 +37,7 @@ pub struct FtpStream {
     reader: BufReader<DataStream>,
     #[cfg(feature = "secure")]
     ssl_cfg: Option<(ClientConfig, DNSName)>,
+    welcome_msg: Option<String>,
 }
 
 impl FtpStream {
@@ -51,8 +51,10 @@ impl FtpStream {
             reader: BufReader::new(DataStream::Tcp(stream)),
             #[cfg(feature = "secure")]
             ssl_cfg: None,
+            welcome_msg: None,
         };
-        ftp_stream.read_response(status::READY).await?;
+        let result = ftp_stream.read_response(status::READY).await?;
+        ftp_stream.welcome_msg = Some(result.1);
 
         Ok(ftp_stream)
     }
@@ -97,6 +99,7 @@ impl FtpStream {
         let mut secured_ftp_tream = FtpStream {
             reader: BufReader::new(DataStream::Ssl(stream)),
             ssl_cfg: Some((config, domain)),
+            welcome_msg: None,
         };
         // Set protection buffer size
         secured_ftp_tream.write_str("PBSZ 0\r\n").await?;
@@ -140,6 +143,7 @@ impl FtpStream {
         let plain_ftp_stream = FtpStream {
             reader: BufReader::new(DataStream::Tcp(self.reader.into_inner().into_tcp_stream())),
             ssl_cfg: None,
+            welcome_msg: None,
         };
         Ok(plain_ftp_stream)
     }
@@ -185,6 +189,11 @@ impl FtpStream {
     /// ```
     pub fn get_ref(&self) -> &TcpStream {
         self.reader.get_ref().get_ref()
+    }
+
+    /// Get welcome message from the server on connect.
+    pub fn get_welcome_msg(&self) -> Option<&str> {
+        self.welcome_msg.as_deref()
     }
 
     /// Log in to the FTP server.
@@ -268,8 +277,18 @@ impl FtpStream {
                     caps[6].parse::<u8>().unwrap(),
                 );
                 let port = ((msb as u16) << 8) + lsb as u16;
-                let addr = format!("{}.{}.{}.{}:{}", oct1, oct2, oct3, oct4, port);
-                SocketAddr::from_str(&addr).map_err(FtpError::InvalidAddress)
+
+                use std::net::{IpAddr, Ipv4Addr};
+
+                let ip = if (oct1, oct2, oct3, oct4) == (0, 0, 0, 0) {
+                    self.get_ref()
+                        .peer_addr()
+                        .map_err(FtpError::ConnectionError)?
+                        .ip()
+                } else {
+                    IpAddr::V4(Ipv4Addr::new(oct1, oct2, oct3, oct4))
+                };
+                Ok(SocketAddr::new(ip, port))
             })
     }
 
@@ -292,7 +311,9 @@ impl FtpStream {
     pub async fn restart_from(&mut self, offset: u64) -> Result<()> {
         let rest_command = format!("REST {}\r\n", offset.to_string());
         self.write_str(&rest_command).await?;
-        self.read_response(status::REQUEST_FILE_PENDING).await.map(|_| ())
+        self.read_response(status::REQUEST_FILE_PENDING)
+            .await
+            .map(|_| ())
     }
 
     /// Retrieves the file name specified from the server.
@@ -302,11 +323,8 @@ impl FtpStream {
     pub async fn get(&mut self, file_name: &str) -> Result<BufReader<DataStream>> {
         let retr_command = format!("RETR {}\r\n", file_name);
         let data_stream = BufReader::new(self.data_command(&retr_command).await?);
-        self.read_response_in(&[
-            status::ABOUT_TO_SEND, 
-            status::ALREADY_OPEN
-        ])
-        .await?;
+        self.read_response_in(&[status::ABOUT_TO_SEND, status::ALREADY_OPEN])
+            .await?;
         Ok(data_stream)
     }
 
@@ -629,7 +647,7 @@ mod tests {
     #[tokio::test]
     async fn list_command_dos_newlines() {
         let data_stream = StreamReader::new(once(Ok::<_, std::io::Error>(
-            b"Hello\r\nWorld\r\n\r\nBe\r\nHappy\r\n" as &[u8]
+            b"Hello\r\nWorld\r\n\r\nBe\r\nHappy\r\n" as &[u8],
         )));
 
         assert_eq!(
@@ -643,7 +661,9 @@ mod tests {
 
     #[tokio::test]
     async fn list_command_unix_newlines() {
-        let data_stream =  StreamReader::new(once(Ok::<_, std::io::Error>(b"Hello\nWorld\n\nBe\nHappy\n" as &[u8])));
+        let data_stream = StreamReader::new(once(Ok::<_, std::io::Error>(
+            b"Hello\nWorld\n\nBe\nHappy\n" as &[u8],
+        )));
 
         assert_eq!(
             FtpStream::get_lines_from_stream(data_stream).await.unwrap(),

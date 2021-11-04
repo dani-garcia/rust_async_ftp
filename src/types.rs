@@ -92,3 +92,26 @@ impl Error for FtpError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn format_control_str() {
+        assert_eq!(FormatControl::Default.to_string(), "N");
+        assert_eq!(FormatControl::NonPrint.to_string(), "N");
+        assert_eq!(FormatControl::Telnet.to_string(), "T");
+        assert_eq!(FormatControl::Asa.to_string(), "C");
+    }
+
+    #[test]
+    fn file_type_str() {
+        assert_eq!(FileType::Ascii(FormatControl::Default).to_string(), "A N");
+        assert_eq!(FileType::Ebcdic(FormatControl::Asa).to_string(), "E C");
+        assert_eq!(FileType::Image.to_string(), "I");
+        assert_eq!(FileType::Binary.to_string(), "I");
+        assert_eq!(FileType::Local(6).to_string(), "L 6");
+    }
+}
