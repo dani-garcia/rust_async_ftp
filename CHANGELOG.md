@@ -1,54 +1,24 @@
 # Changelog
 
-This project follows semantic versioning.
 
-Possible log types:
-
-- `[added]` for new features.
-- `[changed]` for changes in existing functionality.
-- `[deprecated]` for once-stable features removed in upcoming releases.
-- `[removed]` for deprecated features removed in this release.
-- `[fixed]` for any bug fixes.
-- `[security]` to invite users to upgrade in case of vulnerabilities.
-
-
-### [Unreleased]
-
-- [changed] The `FTPStream` struct was renamed to `FtpStream` (#17)
-- [added] The `host` parameter for `FtpStream` now accepts any type that
-  implements `Into<String>` (#13)
-- [changed] FTP return code type changed from `isize` to `u32` (#18)
-- [changed] Type of port number returned by `pasv` changed from `isize`
-  to `u32` (#18)
-- [changed] Improved error handling (#21)
-- [added] Ability to rename files on the server
-- ...
-
-### [Unreleased from branch list_commands]
-- [changed] Separate main lib file and FTP stream implementation.
-- [changed] Regex is used to parse PASV response.
-- [added] The implementation of LIST command. See method `FtpStream::list`.
-- [added] The implementation of NLST command. See method `FtpStream::nlst`.
-- [added] The implementation of MDTM command. See method `FtpStream::mdtm`.
-- [added] The implementation of SIZE command. See method `FtpStream::size`.
-
-### [Unreleased from branch retr_and_type]
-- [added] The implementation of RETR command. See method `FtpStream::retr`.
-- [added] The implementation of TYPE command. See method `FtpStream::transfer_type`.
-
-### [Unreleased from branch ftps_support]
-- [added] Feature `secure` to enable FTPS support. Disabled be default.
-- [added] Feature `debug_print` to print command and responses to STDOUT. Disabled be default.
-- [added] DataStream which hides the underlying secure or insecure TCP stream.
-- [changed] Methods return `DataStream` instead of `TcpStream`.
-- [changed] Method `pasv` returns only IP and port and do not open new TCP stream.
-- [added] Method `data_command` which issues `pasv` to open the new `DataStream`.
-- [added] Methods `secure` and `insecure` to switch between secure and insecure modes.
+## 5.1.0
+- Add resume functionality
+- Added function to get server welcome message.
+- Use the peer address when the server responds with all zeroes like is the case with IPv6.
+- Added some small tests for types.
+- Make the test results clearer, using ? instead of asserting is_ok().
+## 5.0.0
+- Update to tokio 1.0.
+## 4.0.4
+- Minor bug in FtpStream::get.
+## 4.0.2
+- Make get_lines_from_stream work for unix newlines.
+- Add test for list returning unix newlines.
+## 4.0.1
+- Drop data stream before waiting close code.
+## 4.0.0
+- Initial release with 2018 edition and tokio support.
 
 
-### [v0.0.7] (2016-01-11)
-
-- No changelog up to this point
-
-[Unreleased]: https://github.com/coredump-ch/coredumpbot/compare/761deb8...HEAD
-[0.0.7]: https://github.com/mattnenterprise/rust-ftp/compare/ef996f0...761deb8
+## For versions 3.0 and below, check the original sync fork:
+https://raw.githubusercontent.com/mattnenterprise/rust-ftp/master/CHANGELOG.md
