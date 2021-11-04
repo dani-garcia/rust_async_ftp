@@ -4,7 +4,7 @@
 //!
 //! Here is a basic usage example:
 //!
-//! ```rust
+//! ```rust,no_run
 //! use async_ftp::FtpStream;
 //! async {
 //!   let mut ftp_stream = FtpStream::connect("172.25.82.139:21").await.unwrap_or_else(|err|
@@ -28,19 +28,18 @@
 //! ### FTPS Usage
 //!
 //! ```rust,no_run
+//! use std::convert::TryFrom;
 //! use std::path::Path;
 //! use async_ftp::FtpStream;
-//! use tokio_rustls::rustls::{ClientConfig, RootCertStore};
-//! use tokio_rustls::webpki::{DNSName, DNSNameRef};
+//! use tokio_rustls::rustls::{ClientConfig, RootCertStore, ServerName};
 //!
 //! async {
 //!   let ftp_stream = FtpStream::connect("172.25.82.139:21").await.unwrap();
 //!   
 //!   let mut root_store = RootCertStore::empty();
 //!   // root_store.add_pem_file(...);
-//!   let mut conf = ClientConfig::new();
-//!   conf.root_store = root_store;
-//!   let domain = DNSNameRef::try_from_ascii_str("www.cert-domain.com").unwrap().into();
+//!   let conf = ClientConfig::builder().with_safe_defaults().with_root_certificates(root_store).with_no_client_auth();
+//!   let domain = ServerName::try_from("www.cert-domain.com").expect("invalid DNS name");
 //!
 //!   // Switch to the secure mode
 //!   let mut ftp_stream = ftp_stream.into_secure(conf, domain).await.unwrap();

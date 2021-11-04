@@ -1,6 +1,9 @@
 # Changelog
 
-
+## 6.0.0
+- Update tokio-rustls to 0.23
+    - If you don't have the `secure` feature enabled, this change doesn't affect you
+    - If you do have it enabled, the docs should explain the changes from `DnsName` to `ServerName`, and the setup of `ClientConfig`
 ## 5.1.0
 - Add resume functionality
 - Added function to get server welcome message.
