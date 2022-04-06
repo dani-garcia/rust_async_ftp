@@ -54,10 +54,12 @@
 //!
 
 mod data_stream;
+mod file_reader;
 mod ftp;
 pub mod status;
 pub mod types;
 
 pub use self::data_stream::DataStream;
+pub use self::file_reader::FileReader;
 pub use self::ftp::FtpStream;
 pub use self::types::FtpError;
