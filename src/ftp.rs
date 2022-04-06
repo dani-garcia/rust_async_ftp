@@ -17,6 +17,7 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use tokio_rustls::{rustls::ClientConfig, rustls::ServerName, TlsConnector};
 
 use crate::data_stream::DataStream;
+use crate::file_reader::FileReader;
 use crate::status;
 use crate::types::{FileType, FtpError, Line, Result};
 
@@ -316,14 +317,15 @@ impl FtpStream {
 
     /// Retrieves the file name specified from the server.
     /// This method is a more complicated way to retrieve a file.
-    /// The reader returned should be dropped.
-    /// Also you will have to read the response to make sure it has the correct value.
-    pub async fn get(&mut self, file_name: &str) -> Result<BufReader<DataStream>> {
+    ///
+    /// If the reader is dropped before the file is fully read, the server will send a error message that
+    /// should be read with [`Self::read_response`]/[`Self::read_response_in`].
+    pub async fn get(&mut self, file_name: &str) -> Result<FileReader<'_>> {
         let retr_command = format!("RETR {}\r\n", file_name);
-        let data_stream = BufReader::new(self.data_command(&retr_command).await?);
+        let data_stream = self.data_command(&retr_command).await?;
         self.read_response_in(&[status::ABOUT_TO_SEND, status::ALREADY_OPEN])
             .await?;
-        Ok(data_stream)
+        Ok(FileReader::new(data_stream, self))
     }
 
     /// Renames the file from_name to to_name
