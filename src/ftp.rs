@@ -365,7 +365,7 @@ impl FtpStream {
     /// ```
     pub async fn retr<F, T, P, E>(&mut self, filename: &str, reader: F) -> std::result::Result<T, E>
     where
-        F: Fn(BufReader<DataStream>) -> P,
+        F: FnOnce(BufReader<DataStream>) -> P,
         P: std::future::Future<Output = std::result::Result<T, E>>,
         E: From<FtpError>,
     {
