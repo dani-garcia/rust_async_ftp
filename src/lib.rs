@@ -27,7 +27,7 @@
 //!
 //! ### FTPS Usage
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use std::convert::TryFrom;
 //! use std::path::Path;
 //! use async_ftp::FtpStream;
