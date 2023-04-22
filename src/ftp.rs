@@ -84,7 +84,11 @@ impl FtpStream {
     /// };
     /// ```
     #[cfg(feature = "secure")]
-    pub async fn into_secure(mut self, config: ClientConfig, domain: ServerName) -> Result<FtpStream> {
+    pub async fn into_secure(
+        mut self,
+        config: ClientConfig,
+        domain: ServerName,
+    ) -> Result<FtpStream> {
         // Ask the server to start securing data.
         self.write_str("AUTH TLS\r\n").await?;
         self.read_response(status::AUTH_OK).await?;
@@ -553,9 +557,9 @@ impl FtpStream {
                     caps[5].parse::<u32>().unwrap(),
                     caps[6].parse::<u32>().unwrap(),
                 );
-                Ok(Some(
-                    Utc.ymd(year, month, day).and_hms(hour, minute, second),
-                ))
+                Ok(Utc
+                    .with_ymd_and_hms(year, month, day, hour, minute, second)
+                    .latest())
             }
             None => Ok(None),
         }
