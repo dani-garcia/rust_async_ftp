@@ -264,28 +264,17 @@ impl FtpStream {
             .ok_or_else(|| FtpError::InvalidResponse(format!("Invalid PASV response: {}", line)))
             .and_then(|caps| {
                 // If the regex matches we can be sure groups contains numbers
-                let (oct1, oct2, oct3, oct4) = (
-                    caps[1].parse::<u8>().unwrap(),
-                    caps[2].parse::<u8>().unwrap(),
-                    caps[3].parse::<u8>().unwrap(),
-                    caps[4].parse::<u8>().unwrap(),
-                );
                 let (msb, lsb) = (
                     caps[5].parse::<u8>().unwrap(),
                     caps[6].parse::<u8>().unwrap(),
                 );
                 let port = ((msb as u16) << 8) + lsb as u16;
 
-                use std::net::{IpAddr, Ipv4Addr};
-
-                let ip = if (oct1, oct2, oct3, oct4) == (0, 0, 0, 0) {
-                    self.get_ref()
-                        .peer_addr()
-                        .map_err(FtpError::ConnectionError)?
-                        .ip()
-                } else {
-                    IpAddr::V4(Ipv4Addr::new(oct1, oct2, oct3, oct4))
-                };
+                let ip = self
+                    .get_ref()
+                    .peer_addr()
+                    .map_err(FtpError::ConnectionError)?
+                    .ip();
                 Ok(SocketAddr::new(ip, port))
             })
     }
